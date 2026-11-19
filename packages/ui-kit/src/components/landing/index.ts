@@ -35,6 +35,12 @@ export {
 } from './LandingFeatures';
 
 export {
+  LandingHowItWorks,
+  type LandingHowItWorksProps,
+  type StepItem
+} from './LandingHowItWorks';
+
+export {
   LandingOverview,
   type LandingOverviewProps,
   type OverviewHighlight

@@ -3,6 +3,7 @@ import { ProductLandingLayout } from './ProductLandingLayout';
 import { LandingHero, type LandingHeroProps } from './LandingHero';
 import { LandingOverview, type LandingOverviewProps } from './LandingOverview';
 import { LandingFeatures, type LandingFeaturesProps } from './LandingFeatures';
+import { LandingHowItWorks, type LandingHowItWorksProps } from './LandingHowItWorks';
 import { LandingVisualShowcase, type LandingVisualShowcaseProps } from './LandingVisualShowcase';
 import { LandingBenefits, type LandingBenefitsProps } from './LandingBenefits';
 import { LandingCtaSection, type LandingCtaSectionProps } from './LandingCtaSection';
@@ -37,6 +38,8 @@ export interface ProductLandingTemplateProps {
   overviewProps?: LandingOverviewProps;
   /** Optional props for the Key Features section. */
   featuresProps?: LandingFeaturesProps;
+  /** Optional props for the How It Works 3-step workflow section. */
+  howItWorksProps?: LandingHowItWorksProps;
   /** Optional props for the Visual Showcase section. */
   showcaseProps?: LandingVisualShowcaseProps;
   /** Optional props for the Benefits & Metrics section. */
@@ -71,6 +74,7 @@ export const ProductLandingTemplate: React.FC<ProductLandingTemplateProps> = ({
   heroProps,
   overviewProps,
   featuresProps,
+  howItWorksProps,
   showcaseProps,
   benefitsProps,
   ctaProps,
@@ -114,7 +118,15 @@ export const ProductLandingTemplate: React.FC<ProductLandingTemplateProps> = ({
         />
       )}
 
-      {/* 4. Visual Showcase Section */}
+      {/* 4. How It Works 3-Step Workflow Section */}
+      {howItWorksProps && (
+        <LandingHowItWorks
+          {...howItWorksProps}
+          id={howItWorksProps.id || 'how-it-works'}
+        />
+      )}
+
+      {/* 5. Visual Showcase Section */}
       {showcaseProps && (
         <LandingVisualShowcase
           {...showcaseProps}
@@ -122,7 +134,7 @@ export const ProductLandingTemplate: React.FC<ProductLandingTemplateProps> = ({
         />
       )}
 
-      {/* 5. Benefits & Use Cases Section */}
+      {/* 6. Benefits & Use Cases Section */}
       {benefitsProps && (
         <LandingBenefits
           {...benefitsProps}

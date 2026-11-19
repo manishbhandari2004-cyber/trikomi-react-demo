@@ -224,6 +224,7 @@ export {
   LandingFooter,
   LandingHeader,
   LandingHero,
+  LandingHowItWorks,
   LandingNav,
   LandingOverview,
   LandingVisualShowcase,
@@ -254,6 +255,7 @@ export {
   type LandingFooterProps,
   type LandingHeaderProps,
   type LandingHeroProps,
+  type LandingHowItWorksProps,
   type LandingNavLink,
   type LandingNavProps,
   type LandingOverviewProps,
@@ -262,5 +264,6 @@ export {
   type ProductLandingLayoutProps,
   type ProductLandingTemplateProps,
   type ShowcaseItem,
-  type SportswearLandingPageProps
+  type SportswearLandingPageProps,
+  type StepItem
 } from './components/landing';

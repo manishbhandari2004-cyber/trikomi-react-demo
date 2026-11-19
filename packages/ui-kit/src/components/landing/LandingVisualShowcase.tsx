@@ -21,6 +21,12 @@ export interface LandingVisualShowcaseProps {
   items: ShowcaseItem[];
   /** Optional initially active tab ID. Defaults to first item's ID. */
   defaultActiveId?: string;
+  /** Optional call-to-action button to launch the full configurator from the preview stage */
+  action?: {
+    label: string;
+    onClick?: () => void;
+    href?: string;
+  };
   /** Optional DOM element ID for anchor navigation (e.g. 'showcase'). */
   id?: string;
   /** Additional CSS class names. */
@@ -34,6 +40,7 @@ export const LandingVisualShowcase: React.FC<LandingVisualShowcaseProps> = ({
   sectionDescription,
   items = [],
   defaultActiveId,
+  action,
   id,
   className = ''
 }) => {
@@ -111,11 +118,43 @@ export const LandingVisualShowcase: React.FC<LandingVisualShowcaseProps> = ({
               </div>
             </div>
 
-            {activeItem.description && (
-              <p className="vs-landing-showcase__caption" data-testid="showcase-caption">
-                {activeItem.description}
-              </p>
-            )}
+            <div className="vs-landing-showcase__stage-footer">
+              {activeItem.description ? (
+                <p className="vs-landing-showcase__caption" data-testid="showcase-caption">
+                  {activeItem.description}
+                </p>
+              ) : <div />}
+
+              {action && (
+                <div className="vs-landing-showcase__action-wrap">
+                  {action.href ? (
+                    <a
+                      href={action.href}
+                      onClick={action.onClick}
+                      className="vs-btn-primary vs-landing-showcase__cta-btn"
+                      data-testid="showcase-launch-btn"
+                    >
+                      <span>{action.label}</span>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={action.onClick}
+                      className="vs-btn-primary vs-landing-showcase__cta-btn"
+                      data-testid="showcase-launch-btn"
+                    >
+                      <span>{action.label}</span>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

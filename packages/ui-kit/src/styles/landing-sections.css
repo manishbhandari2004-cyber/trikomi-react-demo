@@ -4427,7 +4427,190 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   8. Reusable How It Works Section (.vs-landing-how-it-works)
+   -------------------------------------------------------------------------- */
+.vs-landing-how-it-works {
+  position: relative;
+  width: 100%;
+  padding: 4.5rem 1.5rem;
+}
 
+.vs-landing-how-it-works__container {
+  max-width: 1360px;
+  margin: 0 auto;
+}
 
+.vs-landing-how-it-works__header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 3rem;
+}
 
+.vs-landing-how-it-works__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--vs-radius-pill);
+  background: var(--vs-tonal-lavender);
+  border: 1px solid var(--vs-control-border);
+  color: var(--vs-primary);
+  font-size: var(--vs-font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.vs-landing-how-it-works__badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vs-primary);
+  box-shadow: 0 0 6px var(--vs-primary);
+}
+
+.vs-landing-how-it-works__title {
+  font-family: var(--vs-font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--vs-ink);
+  margin: 0 0 0.75rem 0;
+}
+
+.vs-landing-how-it-works__subtitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--vs-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.vs-landing-how-it-works__desc {
+  font-size: 1rem;
+  color: var(--vs-ink-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.vs-landing-how-it-works__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
+  position: relative;
+}
+
+.vs-step-card {
+  position: relative;
+  background: var(--vs-surface-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--vs-surface-card-border);
+  border-radius: var(--vs-radius-card);
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.vs-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--vs-shadow-lg);
+  border-color: var(--vs-primary);
+}
+
+.vs-step-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.vs-step-card__number {
+  font-family: var(--vs-font-mono, monospace);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--vs-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.vs-step-card__icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--vs-tonal-lavender);
+  border: 1px solid var(--vs-control-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vs-primary);
+}
+
+.vs-step-card__title {
+  font-family: var(--vs-font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--vs-ink);
+  margin: 0 0 0.65rem 0;
+}
+
+.vs-step-card__desc {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--vs-ink-muted);
+  margin: 0;
+  flex-grow: 1;
+}
+
+.vs-step-card__badge {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--vs-radius-pill);
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--vs-primary);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Showcase launch button bar */
+.vs-landing-showcase__stage-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vs-landing-showcase__cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--vs-radius-md);
+  text-decoration: none;
+}
+
+@media (max-width: 992px) {
+  .vs-landing-how-it-works__grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .vs-landing-showcase__stage-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 
