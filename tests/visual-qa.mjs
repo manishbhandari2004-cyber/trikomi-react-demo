@@ -7,9 +7,19 @@ import puppeteer from 'puppeteer-core';
 const repoRoot = path.resolve('.');
 const distDir = path.join(repoRoot, 'dist');
 const screenshotsDir = path.join(repoRoot, 'public', 'qa-screenshots');
+const artifactDir = 'C:\\Users\\lenovo\\.gemini\\antigravity\\brain\\7fd4a042-0e39-40bf-bc1e-49ce47f84838';
 
 if (!fs.existsSync(screenshotsDir)) {
   fs.mkdirSync(screenshotsDir, { recursive: true });
+}
+
+async function saveScreenshot(page, filename, options = {}) {
+  const localPath = path.join(screenshotsDir, filename);
+  await page.screenshot({ path: localPath, ...options });
+  if (fs.existsSync(artifactDir)) {
+    const artPath = path.join(artifactDir, filename);
+    try { fs.copyFileSync(localPath, artPath); } catch {}
+  }
 }
 
 const chromePath = [
@@ -204,29 +214,56 @@ async function runVisualQA() {
       appResult.checks.defaultLightMode = initialTheme === 'light';
 
       // Screenshot Light Desktop
-      const lightDesktopPath = path.join(screenshotsDir, `${app.id}-light-desktop.png`);
-      await page.screenshot({ path: lightDesktopPath, fullPage: false });
+      await saveScreenshot(page, `${app.id}-light-desktop.png`, { fullPage: false });
       appResult.screenshots.lightDesktop = `${app.id}-light-desktop.png`;
       console.log(`  📸 Saved Light Mode desktop screenshot: ${app.id}-light-desktop.png`);
 
+      // Scroll to showcase section and capture showcase screenshot
+      try {
+        const showcaseEl = await page.$('.vs-landing-showcase, .tk-solutions-section, #showcase, #solutions');
+        if (showcaseEl) {
+          await showcaseEl.scrollIntoView();
+          await new Promise(r => setTimeout(r, 600));
+          await saveScreenshot(page, `${app.id}-showcase.png`, { fullPage: false });
+          appResult.screenshots.showcase = `${app.id}-showcase.png`;
+          console.log(`  📸 Saved Showcase section screenshot: ${app.id}-showcase.png`);
+        }
+      } catch (err) {
+        console.warn(`  Showcase capture notice: ${err.message}`);
+      }
+
       // 2. Toggle to Dark Mode
-      const themeToggleBtn = await page.$('[data-testid="landing-theme-mode-toggle"]');
+      const themeToggleBtn = await page.$('[data-testid="landing-theme-mode-toggle"], .tk-theme-toggle');
       if (themeToggleBtn) {
         await themeToggleBtn.click();
-        await new Promise(r => setTimeout(r, 400));
-        const darkTheme = await page.$eval('.vs-ui-root', el => el.getAttribute('data-theme')).catch(() => null);
+        await new Promise(r => setTimeout(r, 500));
+        const darkTheme = await page.$eval('.vs-ui-root, .tk-viewer-page', el => el.getAttribute('data-theme')).catch(() => null);
         appResult.checks.darkModeToggle = darkTheme === 'dark';
 
         // Screenshot Dark Desktop
-        const darkDesktopPath = path.join(screenshotsDir, `${app.id}-dark-desktop.png`);
-        await page.screenshot({ path: darkDesktopPath, fullPage: false });
+        await saveScreenshot(page, `${app.id}-dark-desktop.png`, { fullPage: false });
         appResult.screenshots.darkDesktop = `${app.id}-dark-desktop.png`;
         console.log(`  📸 Saved Dark Mode desktop screenshot: ${app.id}-dark-desktop.png`);
 
+        // Capture Dark Mode Showcase screenshot
+        try {
+          const showcaseDarkEl = await page.$('.vs-landing-showcase, .tk-solutions-section, #showcase, #solutions');
+          if (showcaseDarkEl) {
+            await showcaseDarkEl.scrollIntoView();
+            await new Promise(r => setTimeout(r, 500));
+            await saveScreenshot(page, `${app.id}-dark-showcase.png`, { fullPage: false });
+            console.log(`  📸 Saved Dark Mode Showcase screenshot: ${app.id}-dark-showcase.png`);
+          }
+        } catch {}
+
+        // Scroll back to top
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await new Promise(r => setTimeout(r, 300));
+
         // 3. Theme Persistence after Refresh
-        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 7000 }).catch(err => console.warn(`  Reload notice: ${err.message}`));
         await new Promise(r => setTimeout(r, 400));
-        const persistedTheme = await page.$eval('.vs-ui-root', el => el.getAttribute('data-theme')).catch(() => null);
+        const persistedTheme = await page.$eval('.vs-ui-root, .tk-viewer-page', el => el.getAttribute('data-theme')).catch(() => null);
         appResult.checks.themePersistence = persistedTheme === 'dark';
         console.log(`  💾 Theme persisted after reload: ${persistedTheme}`);
       } else {
@@ -245,7 +282,7 @@ async function runVisualQA() {
           const currentAccent = await page.$eval('.vs-ui-root', el => el.getAttribute('data-accent')).catch(() => null);
           appResult.checks.accentSwitch = Boolean(currentAccent);
 
-          await page.reload({ waitUntil: 'domcontentloaded' });
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 7000 }).catch(err => console.warn(`  Reload notice: ${err.message}`));
           await new Promise(r => setTimeout(r, 400));
           const persistedAccent = await page.$eval('.vs-ui-root', el => el.getAttribute('data-accent')).catch(() => null);
           appResult.checks.accentPersistence = persistedAccent === currentAccent;
@@ -264,8 +301,7 @@ async function runVisualQA() {
         console.log(`  🚀 Navigated to 3D Demo: hash=${currentHash}`);
 
         // Capture Demo view screenshot
-        const demoPath = path.join(screenshotsDir, `${app.id}-demo.png`);
-        await page.screenshot({ path: demoPath, fullPage: false });
+        await saveScreenshot(page, `${app.id}-demo.png`, { fullPage: false });
         appResult.screenshots.demoView = `${app.id}-demo.png`;
 
         // 6. Back to Overview Navigation
@@ -293,8 +329,7 @@ async function runVisualQA() {
       // 7. Responsive Viewports: Tablet (768x1024)
       await page.setViewport({ width: 768, height: 1024 });
       await new Promise(r => setTimeout(r, 300));
-      const tabletPath = path.join(screenshotsDir, `${app.id}-tablet.png`);
-      await page.screenshot({ path: tabletPath, fullPage: false });
+      await saveScreenshot(page, `${app.id}-tablet.png`, { fullPage: false });
       appResult.screenshots.tablet = `${app.id}-tablet.png`;
       appResult.checks.tabletResponsive = true;
       console.log(`  📱 Captured Tablet (768px) screenshot`);
@@ -302,8 +337,7 @@ async function runVisualQA() {
       // 8. Responsive Viewports: Mobile (375x667)
       await page.setViewport({ width: 375, height: 667 });
       await new Promise(r => setTimeout(r, 300));
-      const mobilePath = path.join(screenshotsDir, `${app.id}-mobile.png`);
-      await page.screenshot({ path: mobilePath, fullPage: false });
+      await saveScreenshot(page, `${app.id}-mobile.png`, { fullPage: false });
       appResult.screenshots.mobile = `${app.id}-mobile.png`;
 
       // Test mobile hamburger menu

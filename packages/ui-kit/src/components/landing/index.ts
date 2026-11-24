@@ -109,4 +109,11 @@ export {
   type ViewerLandingPageProps
 } from './ViewerLandingPage';
 
+export {
+  ViewerHero3DCanvas,
+  type ViewerHero3DCanvasProps,
+  ViewerPreviewStudio,
+  type ViewerPreviewStudioProps
+} from './Viewer3DCanvas';
+
 

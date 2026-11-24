@@ -1,685 +1,1161 @@
-import React, { useState } from 'react';
-import { ProductLandingTemplate } from './ProductLandingTemplate';
-import type { FeatureItem } from './LandingFeatures';
-import type { BenefitItem } from './LandingBenefits';
-import type { ShowcaseItem } from './LandingVisualShowcase';
-import type { LandingNavLink } from './LandingNav';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useOptionalVictorShellTheme } from '../../theme/ThemeProvider';
+import { ViewerHero3DCanvas, ViewerPreviewStudio } from './Viewer3DCanvas';
 
 export interface ViewerLandingPageProps {
   /** Callback to launch the actual 3D Viewer application. */
   onExploreDemo: () => void;
-  /** Destination route for the demo. Defaults to '/apps/viewer/index.html#demo'. */
+  /** Destination route for the demo. Defaults to '#demo'. */
   exploreDemoHref?: string;
-  /** Active theme accent. Defaults to 'indigo'. */
+  /** Active theme accent. Defaults to 'violet'. */
   theme?: 'violet' | 'indigo' | 'orchid';
   /** Additional CSS class names. */
   className?: string;
 }
 
+const STORAGE_KEY_MODE = 'vs_theme_mode';
+
 /**
  * ViewerLandingPage
  *
- * Dedicated, premium single-product landing page for the VictorShell 3D Viewer Studio.
- * Built using the Frosted Glass design system and reusable landing components.
- * Focuses exclusively on 3D Viewer capabilities:
- * - Next-generation Three.js WebGPU rendering engine with WebGL2 fallback
- * - Cinema-grade PBR material editing (roughness, metalness, clearcoat, transmission, dispersion)
- * - Cinematic post-processing stack (Bloom, SSGI, SSR, SSAO, Depth of Field, progressive shadows)
- * - Precision point-to-point 3D measurement overlay with millimeter calibration
- * - Multi-track skeletal animation timeline with scrubbing and variable playback speed
- * - Instant 8thWall SLAM WebAR surface placement with zero native app installation
- * - 4K studio snapshot export and GLTF 2.0 scene packager
+ * Pixel-perfect implementation of the Trikomi 3D Product Viewer landing page.
+ * Features real interactive 3D models (360° mouse drag, touch rotation, zoom,
+ * fullscreen, floating toolbar, and live PBR material swatches).
  */
-export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
-  onExploreDemo,
-  exploreDemoHref = '/apps/viewer/index.html#demo',
-  theme = 'violet',
-  className = ''
+
+/* --------------------------------------------------------------------------
+   ConfidenceViewerMockup: Interactive 3D Viewer Interface Mockup matching Reference
+   -------------------------------------------------------------------------- */
+interface ConfidenceViewerMockupProps {
+  themeMode?: 'light' | 'dark';
+  onLaunchDemo?: (e?: React.MouseEvent) => void;
+}
+
+const ConfidenceViewerMockup: React.FC<ConfidenceViewerMockupProps> = ({
+  themeMode = 'dark',
+  onLaunchDemo
 }) => {
-  // Navigation anchors matching the reference navbar: Overview, Features, Use Cases, Performance, Tech Specs
-  const navLinks: LandingNavLink[] = [
-    { label: 'Overview', href: '#overview', active: true },
-    { label: 'Features', href: '#features' },
-    { label: 'Use Cases', href: '#use-cases' },
-    { label: 'Performance', href: '#benefits' },
-    { label: 'Tech Specs', href: '#cta' }
+  const [activeSwatch, setActiveSwatch] = useState<string>('purple');
+  const [activeTool, setActiveTool] = useState<string>('iso');
+  const [isRotating, setIsRotating] = useState<boolean>(true);
+
+  const swatches = [
+    { id: 'silver', name: 'Pearl Silver Chrome', className: 'tk-sphere-silver' },
+    { id: 'purple', name: 'Metallic Violet', className: 'tk-sphere-purple' },
+    { id: 'cyan', name: 'Electric Cyan', className: 'tk-sphere-cyan' },
+    { id: 'gold', name: '24K Gold', className: 'tk-sphere-gold' },
+    { id: 'copper', name: 'Rose Bronze', className: 'tk-sphere-copper' },
+    { id: 'obsidian', name: 'Obsidian Slate', className: 'tk-sphere-obsidian' },
   ];
 
-  // Verified Features from ThreeViewer and plugins in @trikomi/core
-  const features: FeatureItem[] = [
-    {
-      id: 'webgpu-pipeline',
-      title: 'WebGPU & WebGL2 Hybrid Pipeline',
-      description:
-        'Harnesses modern GPU compute shaders and high-throughput rasterization with automatic WebGL2 fallback for universal 60 FPS performance across all devices.',
-      badge: 'Core Engine',
-      highlight: true
-    },
-    {
-      id: 'pbr-materials',
-      title: 'PBR Material & Texture Editor',
-      description:
-        'Live calibration of physically based shading channels: microfacet roughness, metallic sheen, normal maps, clearcoat, refractive transmission, and Cauchy dispersion.',
-      badge: 'Photorealistic PBR'
-    },
-    {
-      id: 'post-processing',
-      title: 'Cinematic Post-Processing Stack',
-      description:
-        'Integrated screen-space ambient occlusion (SSAO), screen-space reflections (SSR), HDR Bloom glow, and physical camera depth of field (DOF).',
-      badge: 'Visual Effects'
-    },
-    {
-      id: '3d-measurement',
-      title: 'Precision 3D Measurement Overlay',
-      description:
-        'Interactive point-to-point surface snapping tool calculating real-world Euclidean distances in millimeters and centimeters directly on model vertices.',
-      badge: 'Engineering CAD'
-    },
-    {
-      id: 'kinematics-timeline',
-      title: 'Multi-Track Animation Timeline',
-      description:
-        'Scrub, reverse, loop, and inspect multi-clip skeletal animations with variable playback speed (0.25x – 2x) for complex mechanical and character rigs.',
-      badge: 'GLTF Kinematics'
-    },
-    {
-      id: 'webar-slam',
-      title: 'Instant 8thWall SLAM WebAR',
-      description:
-        'Stream 3D assets directly into augmented reality with 6-DOF surface tracking, real-world scaling, and directional light estimation with zero app installation.',
-      badge: 'Niantic WebAR'
-    }
-  ];
-
-  // Interactive Showcase Views
-  const showcaseItems: ShowcaseItem[] = [
-    {
-      id: 'pbr-studio',
-      label: 'PBR Realistic Studio',
-      badge: 'Photorealistic PBR',
-      description:
-        'Cinema-quality studio lighting with HDR softbox reflections, progressive contact shadows, and calibrated physically based materials.',
-      visual: (
-        <div className="vs-viewer-preview-card" data-testid="showcase-pbr-preview">
-          <div className="vs-viewer-preview-card__badge-row">
-            <span className="vs-viewer-chip">MeshPhysicalMaterial</span>
-            <span className="vs-viewer-chip vs-viewer-chip--accent">HDR Studio Lighting</span>
-          </div>
-          <div className="vs-viewer-preview-card__visual">
-            <img
-              src="/logos/trikomi.png"
-              alt="VictorShell 3D Viewer PBR Rendering"
-              className="vs-viewer-preview-card__img"
-              loading="lazy"
-            />
-          </div>
-          <div className="vs-viewer-preview-card__meta">
-            <span className="vs-viewer-preview-card__title">Photorealistic PBR Shading</span>
-            <span className="vs-viewer-preview-card__spec">Microfacet Roughness 0.1 · Metalness 0.9 · 60 FPS WebGPU</span>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'wireframe-inspection',
-      label: 'Mesh & Wireframe',
-      badge: 'Topology Inspection',
-      description:
-        'Inspect polygonal edge flow, surface normals, bounding box bounds, and precision dimensional tolerances with live overlay toggles.',
-      visual: (
-        <div className="vs-viewer-preview-card" data-testid="showcase-wireframe-preview">
-          <div className="vs-viewer-preview-card__badge-row">
-            <span className="vs-viewer-chip">Polygonal Wireframe</span>
-            <span className="vs-viewer-chip vs-viewer-chip--accent">Vertex Normals</span>
-          </div>
-          <div className="vs-viewer-preview-card__visual">
-            <img
-              src="/logos/trikomi.png"
-              alt="VictorShell 3D Viewer Wireframe Inspection"
-              className="vs-viewer-preview-card__img vs-viewer-preview-card__img--alt"
-              loading="lazy"
-            />
-          </div>
-          <div className="vs-viewer-preview-card__meta">
-            <span className="vs-viewer-preview-card__title">CAD &amp; Mesh Inspection</span>
-            <span className="vs-viewer-preview-card__spec">Scene Graph Traversal · Transform Gizmos · Point Snapping</span>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'animation-kinematics',
-      label: 'Kinematics Timeline',
-      badge: 'Skeletal Rigging',
-      description:
-        'Multi-clip animation playback with interactive timeline scrubbing, frame step controls, and variable playback speeds.',
-      visual: (
-        <div className="vs-viewer-preview-card" data-testid="showcase-animation-preview">
-          <div className="vs-viewer-preview-card__badge-row">
-            <span className="vs-viewer-chip">AnimationMixer</span>
-            <span className="vs-viewer-chip vs-viewer-chip--accent">0.25x – 2.0x Scrub</span>
-          </div>
-          <div className="vs-viewer-preview-card__visual">
-            <img
-              src="/logos/trikomi.png"
-              alt="VictorShell 3D Viewer Animation Timeline"
-              className="vs-viewer-preview-card__img"
-              loading="lazy"
-            />
-          </div>
-          <div className="vs-viewer-preview-card__meta">
-            <span className="vs-viewer-preview-card__title">Interactive Animation Timeline</span>
-            <span className="vs-viewer-preview-card__spec">Multi-Track Playback · Sub-Frame Scrubbing · Loop Modes</span>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'webar-slam',
-      label: 'Augmented Reality',
-      badge: 'Niantic 8thWall SLAM',
-      description:
-        'Place 3D assets in physical spaces using mobile browser camera tracking with instant surface anchoring and light estimation.',
-      visual: (
-        <div className="vs-viewer-preview-card" data-testid="showcase-webar-preview">
-          <div className="vs-viewer-preview-card__badge-row">
-            <span className="vs-viewer-chip">8thWall SLAM WebAR</span>
-            <span className="vs-viewer-chip vs-viewer-chip--accent">Zero App Install</span>
-          </div>
-          <div className="vs-viewer-preview-card__visual">
-            <img
-              src="/logos/trikomi.png"
-              alt="VictorShell 3D Viewer WebAR"
-              className="vs-viewer-preview-card__img vs-viewer-preview-card__img--ar"
-              loading="lazy"
-            />
-          </div>
-          <div className="vs-viewer-preview-card__meta">
-            <span className="vs-viewer-preview-card__title">Real-World WebAR Placement</span>
-            <span className="vs-viewer-preview-card__spec">Instant Floor Detection · 1:1 Scale · iOS &amp; Android Browser</span>
-          </div>
-        </div>
-      )
-    }
-  ];
-
-  // Benefits & Performance Metrics
-  const benefits: BenefitItem[] = [
-    {
-      id: 'fps',
-      title: 'Silky 60 FPS Viewport',
-      description:
-        'Three.js WebGPU engine delivers ultra-smooth rotation, pan, and zoom with zero micro-stuttering on desktop and mobile browsers.',
-      metric: '60 FPS',
-      metricLabel: 'WebGPU Viewport',
-      tag: 'Performance'
-    },
-    {
-      id: 'load-time',
-      title: 'Instant Model Streaming',
-      description:
-        'Optimized GLTF Draco decompression and progressive texture streaming load complex 3D models in milliseconds.',
-      metric: '< 50ms',
-      metricLabel: 'Interaction Response',
-      tag: 'Speed'
-    },
-    {
-      id: 'cost',
-      title: 'Zero Server GPU Streaming Cost',
-      description:
-        'All 3D rendering and post-processing run 100% client-side in the user’s browser. No expensive pixel-streaming server instances.',
-      metric: '$0 / hr',
-      metricLabel: 'Cloud GPU Cost',
-      tag: 'Client-Side'
-    },
-    {
-      id: 'export-res',
-      title: '4K Studio Snapshot & GLTF Export',
-      description:
-        'Capture ultra-high-resolution 4K studio snapshots with transparency and export self-contained GLTF/GLB models with embedded PBR textures.',
-      metric: '4K UHD',
-      metricLabel: 'Snapshot Resolution',
-      tag: 'Production'
-    }
-  ];
-
-  // Interactive customizer states matching reference
-  const [activeTab, setActiveTab] = useState<'color' | 'material' | 'view'>('color');
-  const [activeColor, setActiveColor] = useState<'purple' | 'blue' | 'cyan' | 'pink' | 'white'>('purple');
-  const [activeMaterial, setActiveMaterial] = useState<'purple-gloss' | 'chrome' | 'silver' | 'brushed' | 'carbon'>('purple-gloss');
-
-  // Hero visual showcase matching reference layout: center purple knot on pedestal, right floating customization panel
-  const heroVisual = (
-    <div className="vs-viewer-hero-showcase" data-testid="viewer-hero-showcase">
-      {/* Center 3D Product Stage */}
-      <div className="vs-viewer-hero-stage__viewport">
-        <div className="vs-viewer-hero-image-wrap">
-          <img
-            src="/images/purple-knot-product.png"
-            alt="VictorShell 3D Product Viewer - Purple Torus Knot"
-            className="vs-viewer-hero-image"
-            loading="eager"
-          />
-        </div>
-      </div>
-
-      {/* Right Floating Glass Customizer Panel */}
-      <div className="vs-viewer-customizer-card" data-testid="viewer-customizer-card">
-        <h3 className="vs-viewer-customizer-title">Customize Your Product</h3>
-
-        {/* Tabs: Color, Material, View */}
-        <div className="vs-viewer-customizer-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'color'}
-            className={`vs-viewer-tab-btn ${activeTab === 'color' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('color')}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-            <span>Color</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'material'}
-            className={`vs-viewer-tab-btn ${activeTab === 'material' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('material')}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-            <span>Material</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'view'}
-            className={`vs-viewer-tab-btn ${activeTab === 'view' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('view')}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="4" y1="21" x2="4" y2="14" />
-              <line x1="4" y1="10" x2="4" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12" y2="3" />
-              <line x1="20" y1="21" x2="20" y2="16" />
-              <line x1="20" y1="12" x2="20" y2="3" />
-              <line x1="1" y1="14" x2="7" y2="14" />
-              <line x1="9" y1="8" x2="15" y2="8" />
-              <line x1="17" y1="16" x2="23" y2="16" />
-            </svg>
-            <span>View</span>
-          </button>
-        </div>
-
-        {/* Section 1: Color */}
-        <div className="vs-viewer-customizer-section">
-          <span className="vs-viewer-section-label">Color</span>
-          <div className="vs-viewer-swatches-grid">
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--purple ${activeColor === 'purple' ? 'is-active' : ''}`}
-              onClick={() => setActiveColor('purple')}
-              title="Cosmic Purple"
-              aria-label="Cosmic Purple"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--blue ${activeColor === 'blue' ? 'is-active' : ''}`}
-              onClick={() => setActiveColor('blue')}
-              title="Ocean Blue"
-              aria-label="Ocean Blue"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--cyan ${activeColor === 'cyan' ? 'is-active' : ''}`}
-              onClick={() => setActiveColor('cyan')}
-              title="Vibrant Cyan"
-              aria-label="Vibrant Cyan"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--pink ${activeColor === 'pink' ? 'is-active' : ''}`}
-              onClick={() => setActiveColor('pink')}
-              title="Neon Pink"
-              aria-label="Neon Pink"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--white ${activeColor === 'white' ? 'is-active' : ''}`}
-              onClick={() => setActiveColor('white')}
-              title="Pure White"
-              aria-label="Pure White"
-            />
-          </div>
-        </div>
-
-        {/* Section 2: Material */}
-        <div className="vs-viewer-customizer-section">
-          <span className="vs-viewer-section-label">Material</span>
-          <div className="vs-viewer-swatches-grid">
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--purple-gloss ${activeMaterial === 'purple-gloss' ? 'is-active' : ''}`}
-              onClick={() => setActiveMaterial('purple-gloss')}
-              title="Gloss Metallic Purple"
-              aria-label="Gloss Metallic Purple"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--chrome ${activeMaterial === 'chrome' ? 'is-active' : ''}`}
-              onClick={() => setActiveMaterial('chrome')}
-              title="Mirror Chrome"
-              aria-label="Mirror Chrome"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--silver ${activeMaterial === 'silver' ? 'is-active' : ''}`}
-              onClick={() => setActiveMaterial('silver')}
-              title="Silver Satin"
-              aria-label="Silver Satin"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--brushed ${activeMaterial === 'brushed' ? 'is-active' : ''}`}
-              onClick={() => setActiveMaterial('brushed')}
-              title="Brushed Steel"
-              aria-label="Brushed Steel"
-            />
-            <button
-              type="button"
-              className={`vs-viewer-swatch vs-viewer-swatch--carbon ${activeMaterial === 'carbon' ? 'is-active' : ''}`}
-              onClick={() => setActiveMaterial('carbon')}
-              title="Dark Carbon Fiber"
-              aria-label="Dark Carbon Fiber"
-            />
-          </div>
-        </div>
-
-        {/* View in 3D Button */}
+  return (
+    <div className="tk-mockup-frame">
+      {/* Left Vertical Toolbar Panel */}
+      <div className="tk-mockup-toolbar">
+        {/* Tool 1: Iso Box */}
         <button
           type="button"
-          onClick={onExploreDemo}
-          className="vs-viewer-view-3d-btn"
-          data-testid="viewer-view-in-3d-btn"
+          className={`tk-mockup-tool-btn ${activeTool === 'iso' ? 'is-active' : ''}`}
+          onClick={() => setActiveTool('iso')}
+          title="Isometric View"
+          aria-label="Isometric View"
         >
-          <span>View in 3D</span>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="7" y1="17" x2="17" y2="7" />
-            <polyline points="7 7 17 7 17 17" />
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </button>
+        {/* Tool 2: Orbit Box */}
+        <button
+          type="button"
+          className={`tk-mockup-tool-btn ${activeTool === 'orbit' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTool('orbit');
+            setIsRotating(prev => !prev);
+          }}
+          title="360° Orbit Rotation"
+          aria-label="360° Orbit Rotation"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M21.17 8A10 10 0 0 0 3.83 8" />
+            <path d="M2.83 16a10 10 0 0 0 17.34 0" />
+          </svg>
+        </button>
+        {/* Tool 3: Wireframe */}
+        <button
+          type="button"
+          className={`tk-mockup-tool-btn ${activeTool === 'wire' ? 'is-active' : ''}`}
+          onClick={() => setActiveTool('wire')}
+          title="Wireframe Mesh"
+          aria-label="Wireframe Mesh"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="3" y1="15" x2="21" y2="15" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+            <line x1="15" y1="3" x2="15" y2="21" />
+          </svg>
+        </button>
+        {/* Tool 4: Exploded */}
+        <button
+          type="button"
+          className={`tk-mockup-tool-btn ${activeTool === 'layers' ? 'is-active' : ''}`}
+          onClick={() => setActiveTool('layers')}
+          title="Exploded Mesh Parts"
+          aria-label="Exploded Mesh Parts"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+          </svg>
+        </button>
+        {/* Tool 5: Gear */}
+        <button
+          type="button"
+          className={`tk-mockup-tool-btn ${activeTool === 'gear' ? 'is-active' : ''}`}
+          onClick={() => setActiveTool('gear')}
+          title="Settings & Parameters"
+          aria-label="Settings & Parameters"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
         </button>
       </div>
+
+      {/* Main Viewport */}
+      <div className="tk-mockup-main">
+        {/* Navigation Bar: Back Chevron & Fullscreen Button */}
+        <div className="tk-mockup-header">
+          <button
+            type="button"
+            className="tk-mockup-ctrl-btn"
+            title="Back / Reset View"
+            aria-label="Back / Reset View"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="tk-mockup-ctrl-btn"
+            onClick={onLaunchDemo}
+            title="Launch Fullscreen 3D Studio"
+            aria-label="Launch Fullscreen 3D Studio"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Center 3D Model Display */}
+        <div className="tk-mockup-canvas-wrap" onClick={onLaunchDemo} title="Click to launch Interactive 3D Studio">
+          <img
+            src="/images/purple-knot-product.png"
+            alt="Real-Time 3D Torus Knot Model"
+            className={`tk-mockup-3d-img ${isRotating ? 'is-animating' : ''} swatch-${activeSwatch}`}
+          />
+        </div>
+
+        {/* Bottom Material / Color Swatches */}
+        <div className="tk-mockup-swatches">
+          {swatches.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={`tk-mockup-sphere ${s.className} ${activeSwatch === s.id ? 'is-active' : ''}`}
+              onClick={() => setActiveSwatch(s.id)}
+              title={s.name}
+              aria-label={s.name}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
+};
+
+export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
+  onExploreDemo,
+  exploreDemoHref = '#demo',
+  theme = 'violet',
+  className = ''
+}) => {
+  // Context-aware theme support with fallback to local state
+  const themeContext = useOptionalVictorShellTheme();
+
+  const [themeMode, setThemeModeState] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY_MODE);
+        if (saved === 'light' || saved === 'dark') {
+          return saved;
+        }
+      } catch {
+        // Ignore localStorage error
+      }
+    }
+    // Default to Light theme as requested
+    return 'light';
+  });
+
+  const activeMode = themeContext ? themeContext.themeMode : themeMode;
+
+  const handleToggleTheme = useCallback(() => {
+    if (themeContext) {
+      themeContext.toggleThemeMode();
+    } else {
+      setThemeModeState((prev) => {
+        const next = prev === 'light' ? 'dark' : 'light';
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(STORAGE_KEY_MODE, next);
+          } catch {
+            // Ignore localStorage error
+          }
+        }
+        return next;
+      });
+    }
+  }, [themeContext]);
+
+  // Keep documentElement in sync
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', activeMode);
+    }
+  }, [activeMode]);
+
+  // Scroll detection for transparent-to-subtle glass transition
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window !== 'undefined') {
+        setIsScrolled(window.scrollY > 20);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Mobile navigation drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  const handleLaunchDemo = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (onExploreDemo) {
+      onExploreDemo();
+    } else if (typeof window !== 'undefined') {
+      window.location.hash = exploreDemoHref;
+    }
+  };
+
+  const handleScrollTo = (id: string, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
-    <ProductLandingTemplate
-      productTitle="3D Viewer Configurator"
-      productBadge="3D Viewer Configurator"
-      productTagline="Enterprise WebGPU 3D model visualization, PBR material editing, kinematics animation, and real-time 8thWall WebAR."
-      brandName="VictorShell™"
-      theme={theme}
-      onExploreDemo={onExploreDemo}
-      exploreDemoLabel="Try Live Demo"
-      exploreDemoHref={exploreDemoHref}
-      navLinks={navLinks}
-      className={`vs-viewer-landing-page ${className}`.trim()}
-      heroProps={{
-        id: 'hero',
-        badge: (
-          <span className="vs-viewer-hero-badge">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-            <span>3D Product Viewer</span>
-          </span>
-        ),
-        title: (
-          <>
-            View, Interact &amp;<br />
-            Showcase Products in <span className="vs-gradient-text">3D</span>
-          </>
-        ),
-        description:
-          'A powerful 3D product viewer to display, customize and interact with your products in high quality, real-time 3D.',
-        exploreDemoLabel: 'Try Live Demo',
-        secondaryCta: {
-          label: 'Book a Demo',
-          href: '#cta',
-          icon: (
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          )
-        },
-        techBadges: [
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            ),
-            label: 'Real-Time',
-            sublabel: 'Rendering'
-          },
-          {
-            icon: (
-              <span style={{ fontWeight: 800, fontSize: '13px', letterSpacing: '-0.02em' }}>4K</span>
-            ),
-            label: '4K',
-            sublabel: 'Ultra Quality'
-          },
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-              </svg>
-            ),
-            label: 'PBR',
-            sublabel: 'Materials'
-          }
-        ],
-        featureHighlights: [
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-              </svg>
-            ),
-            title: 'Realistic 3D Visualization',
-            description: 'Show your product in true-to-life 3D with accurate detail and finish.'
-          },
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-                <line x1="1" y1="14" x2="7" y2="14" />
-                <line x1="9" y1="8" x2="15" y2="8" />
-                <line x1="17" y1="16" x2="23" y2="16" />
-              </svg>
-            ),
-            title: 'Complete Customization',
-            description: 'Change color, material and variants in real time.'
-          },
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            ),
-            title: 'Fast & Seamless',
-            description: 'Instant updates with high-performance WebGL.'
-          },
-          {
-            icon: (
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
-            ),
-            title: 'Cross-Platform',
-            description: 'Works smoothly on desktop, tablet and mobile.'
-          }
-        ],
-        visual: heroVisual
-      }}
-      overviewProps={{
-        id: 'overview',
-        badge: 'Studio-Grade Rendering',
-        title: 'Cinema-Grade Shading, Kinematics & Post-Processing',
-        description:
-          'Engineered on Three.js WebGPU and @trikomi/core, the 3D Viewer delivers instant hardware-accelerated rendering, progressive soft contact shadows, screen-space reflections, and physical camera depth of field.',
-        highlights: [
-          {
-            title: 'Physically Based Shading (PBR)',
-            text: 'Real-time microfacet roughness, metallic sheen, clearcoat, refractive transmission, and anisotropic dispersion.'
-          },
-          {
-            title: 'Point-to-Point 3D Measurement Tool',
-            text: 'Millimeter-accurate surface vertex snapping calculates Euclidean dimensions directly in the 3D viewport.'
-          },
-          {
-            title: 'Multi-Track Kinematics Timeline',
-            text: 'Scrub, reverse, loop, and inspect multi-clip skeletal animations with variable speed (0.25x – 2x).'
-          }
-        ],
-        visual: (
-          <div className="vs-viewer-overview-card" data-testid="viewer-overview-card">
-            <div className="vs-viewer-overview-card__header">
-              <span className="vs-viewer-overview-card__title">Real-Time PBR Channel Pipeline</span>
-              <span className="vs-viewer-chip">ThreeViewer.ts</span>
-            </div>
-            <div className="vs-viewer-overview-card__body">
-              <img
-                src="/logos/trikomi.png"
-                alt="3D Viewer PBR Pipeline"
-                className="vs-viewer-overview-card__img"
-                loading="lazy"
-              />
-            </div>
-            <div className="vs-viewer-overview-card__footer">
-              <div className="vs-viewer-pbr-swatches">
-                <span className="vs-viewer-chip" style={{ fontSize: '10px' }}>Roughness: 0.1</span>
-                <span className="vs-viewer-chip" style={{ fontSize: '10px' }}>Metalness: 0.9</span>
-                <span className="vs-viewer-chip" style={{ fontSize: '10px' }}>Normal Map: 100%</span>
-                <span className="vs-viewer-chip" style={{ fontSize: '10px' }}>Bloom: 0.45</span>
-              </div>
-              <span className="vs-viewer-overview-card__note">Hardware-Accelerated WebGPU Shaders</span>
-            </div>
-          </div>
-        )
-      }}
-      featuresProps={{
-        id: 'features',
-        badge: 'Engine Capabilities',
-        sectionTitle: 'Built for High-Precision 3D Inspection & Visualization',
-        sectionSubtitle:
-          'Advanced graphics and tooling built for designers, engineers, e-commerce platforms, and digital artists.',
-        layout: 'grid',
-        columns: 3,
-        features
-      }}
-      showcaseProps={{
-        id: 'showcase',
-        badge: 'Viewport Modes',
-        sectionTitle: 'Explore Multi-Mode Inspection & Rendering',
-        sectionSubtitle:
-          'Switch between interactive viewport modes designed for different stages of the 3D asset lifecycle.',
-        items: showcaseItems
-      }}
-      benefitsProps={{
-        id: 'benefits',
-        badge: 'Performance & ROI',
-        sectionTitle: 'Why Creators & Engineers Choose VictorShell 3D Viewer',
-        sectionSubtitle: 'Engineered for speed, fidelity, client-side efficiency, and zero plugin friction.',
-        variant: 'metrics',
-        items: benefits
-      }}
-      ctaProps={{
-        id: 'cta',
-        badge: 'Interactive 3D Studio',
-        title: 'Launch the Full 3D Viewer Interactive Studio',
-        description:
-          'Inspect models, adjust PBR materials, measure geometry, and experience augmented reality live in your browser.',
-        exploreDemoLabel: 'Launch 3D Viewer',
-        exploreDemoHref
-      }}
+    <div
+      className={`tk-viewer-page ${className}`}
+      data-theme={activeMode}
+      data-accent={theme}
+      data-testid="trikomi-viewer-landing"
     >
-      {/* Proven Industry Use Cases Section */}
-      <section className="vs-landing-use-cases" id="use-cases" data-testid="viewer-use-cases-section">
-        <div className="vs-landing-use-cases__container">
-          <div className="vs-landing-use-cases__header">
-            <span className="vs-landing-use-cases__badge">Proven Verticals</span>
-            <h2 className="vs-landing-use-cases__title">Empowering Every 3D Workflow</h2>
-            <p className="vs-landing-use-cases__subtitle">
-              From enterprise e-commerce showrooms to high-precision aerospace and jewelry engineering.
-            </p>
+      {/* Dynamic Ambient Background Glow Orbs */}
+      <div className="tk-viewer-ambient" aria-hidden="true">
+        <div className="tk-ambient-orb-1" />
+        <div className="tk-ambient-orb-2" />
+        <div className="tk-ambient-orb-3" />
+      </div>
+
+      {/* ----------------------------------------------------------------------
+          1. Header / Navbar
+          ---------------------------------------------------------------------- */}
+      <header className={`tk-navbar ${isScrolled ? 'is-scrolled' : ''}`} data-testid="viewer-header">
+        <div className="tk-container">
+          <div className="tk-navbar__inner">
+            {/* Brand Logo */}
+            <a
+              href="#/"
+              className="tk-brand"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title="Trikomi 3D Platform"
+            >
+              <div className="tk-brand__icon" aria-hidden="true">
+                {/* Trikomi Geometric Origami / Arrow Logo */}
+                <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
+                  <path
+                    d="M3 5.5L25 14L3 22.5L7.5 14L3 5.5Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M12.5 14L25 14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    style={{ opacity: 0.3 }}
+                  />
+                </svg>
+              </div>
+              <span className="tk-brand__name">Trikomi</span>
+            </a>
+
+            {/* Center Navigation Links with Dropdowns */}
+            <nav className="tk-nav" aria-label="Main Navigation">
+              <ul className="tk-nav-links">
+                <li className="tk-nav-item">
+                  <button type="button" className="tk-nav-btn">
+                    <span>Solutions</span>
+                    <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  <div className="tk-dropdown">
+                    <a href="/apps/jewelry-configurator/index.html" className="tk-dropdown__link">Jewelry Configurator</a>
+                    <a href="/apps/eyewear-tryon/index.html" className="tk-dropdown__link">Eyewear Virtual Try-On</a>
+                    <a href="/apps/sportswear-configurator/index.html" className="tk-dropdown__link">Sportswear Configurator</a>
+                    <a href="/apps/box-configurator/index.html" className="tk-dropdown__link">Packaging Configurator</a>
+                    <a href="/apps/360tour/index.html" className="tk-dropdown__link">360° Virtual Tour</a>
+                    <a href="#demo" onClick={handleLaunchDemo} className="tk-dropdown__link">3D Product Viewer Studio</a>
+                  </div>
+                </li>
+
+                <li className="tk-nav-item">
+                  <button type="button" className="tk-nav-btn">
+                    <span>Products</span>
+                    <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  <div className="tk-dropdown">
+                    <a href="#experience" onClick={(e) => handleScrollTo('experience', e)} className="tk-dropdown__link">WebGPU 3D Engine</a>
+                    <a href="#experience" onClick={(e) => handleScrollTo('experience', e)} className="tk-dropdown__link">8thWall WebAR SLAM</a>
+                    <a href="#experience" onClick={(e) => handleScrollTo('experience', e)} className="tk-dropdown__link">Cinema-Grade PBR</a>
+                    <a href="#experience" onClick={(e) => handleScrollTo('experience', e)} className="tk-dropdown__link">Kinematics Timeline</a>
+                  </div>
+                </li>
+
+                <li className="tk-nav-item">
+                  <button type="button" className="tk-nav-btn">
+                    <span>Industries</span>
+                    <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  <div className="tk-dropdown">
+                    <a href="#solutions" onClick={(e) => handleScrollTo('solutions', e)} className="tk-dropdown__link">Luxury Jewelry</a>
+                    <a href="#solutions" onClick={(e) => handleScrollTo('solutions', e)} className="tk-dropdown__link">Eyewear &amp; Optics</a>
+                    <a href="#solutions" onClick={(e) => handleScrollTo('solutions', e)} className="tk-dropdown__link">Athletic Apparel</a>
+                    <a href="#solutions" onClick={(e) => handleScrollTo('solutions', e)} className="tk-dropdown__link">Premium Packaging</a>
+                  </div>
+                </li>
+
+                <li className="tk-nav-item">
+                  <button type="button" className="tk-nav-btn">
+                    <span>Resources</span>
+                    <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  <div className="tk-dropdown">
+                    <a href="#cta" onClick={(e) => handleScrollTo('cta', e)} className="tk-dropdown__link">Developer Documentation</a>
+                    <a href="#cta" onClick={(e) => handleScrollTo('cta', e)} className="tk-dropdown__link">API Reference</a>
+                    <a href="#cta" onClick={(e) => handleScrollTo('cta', e)} className="tk-dropdown__link">Case Studies</a>
+                    <a href="#cta" onClick={(e) => handleScrollTo('cta', e)} className="tk-dropdown__link">System Status</a>
+                  </div>
+                </li>
+
+                <li className="tk-nav-item">
+                  <a href="#stats" onClick={(e) => handleScrollTo('stats', e)} className="tk-nav-btn">
+                    Pricing
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            {/* Right Controls: Search, Theme Toggle, Book a Demo, Mobile Menu */}
+            <div className="tk-nav-actions">
+              <button
+                type="button"
+                className="tk-search-btn"
+                aria-label="Search Trikomi platform"
+                onClick={() => handleScrollTo('solutions')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+
+              {/* Theme Toggle Button Pill */}
+              <button
+                type="button"
+                className="tk-theme-toggle"
+                data-testid="landing-theme-mode-toggle"
+                onClick={handleToggleTheme}
+                aria-label={`Switch to ${activeMode === 'dark' ? 'light' : 'dark'} mode`}
+                title={`Switch to ${activeMode === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                <span className={`tk-theme-icon ${activeMode === 'light' ? 'is-active' : ''}`}>
+                  {/* Sun Icon */}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
+                </span>
+                <span className={`tk-theme-icon ${activeMode === 'dark' ? 'is-active' : ''}`}>
+                  {/* Moon Icon */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                </span>
+              </button>
+
+              {/* Book a Demo Button */}
+              <button
+                type="button"
+                className="tk-btn-primary"
+                onClick={(e) => handleScrollTo('cta', e)}
+              >
+                <span>Book a Demo</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
+
+              {/* Mobile Menu Hamburger Toggle */}
+              <button
+                type="button"
+                className="tk-mobile-toggle vs-landing-header__mobile-toggle"
+                aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                data-testid="landing-mobile-nav-toggle"
+              >
+                {mobileMenuOpen ? (
+                  <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
+        </div>
+      </header>
 
-          <div className="vs-landing-use-cases__grid">
-            <div className="vs-use-case-card" data-testid="use-case-ecommerce">
-              <div className="vs-use-case-card__icon" aria-hidden="true">🛍️</div>
-              <span className="vs-use-case-card__tag">E-Commerce &amp; Retail</span>
-              <h3 className="vs-use-case-card__title">Interactive 3D Product Showrooms</h3>
-              <p className="vs-use-case-card__desc">
-                Engage buyers with 360-degree rotating models, customizable surface materials, and instant WebAR viewing that boosts conversion rates and reduces return rates.
-              </p>
+      {/* Mobile Drawer Navigation Panel */}
+      {mobileMenuOpen && (
+        <div
+          className="tk-mobile-drawer vs-landing-header__mobile-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation"
+          data-testid="mobile-drawer"
+        >
+          <div
+            className="tk-mobile-drawer__backdrop"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="tk-mobile-drawer__panel">
+            <div className="tk-mobile-drawer__header">
+              <div className="tk-brand">
+                <div className="tk-brand__icon" aria-hidden="true">
+                  <svg viewBox="0 0 28 28" width="24" height="24" fill="none">
+                    <path d="M3 5.5L25 14L3 22.5L7.5 14L3 5.5Z" fill="currentColor" />
+                  </svg>
+                </div>
+                <span className="tk-brand__name">Trikomi</span>
+              </div>
+              <button
+                type="button"
+                className="tk-mobile-drawer__close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
 
-            <div className="vs-use-case-card" data-testid="use-case-cad">
-              <div className="vs-use-case-card__icon" aria-hidden="true">📐</div>
-              <span className="vs-use-case-card__tag">CAD &amp; Engineering</span>
-              <h3 className="vs-use-case-card__title">Mechanical Assembly &amp; Tolerances</h3>
-              <p className="vs-use-case-card__desc">
-                Inspect complex CAD geometries with millimeter-accurate point-to-point measurement, exploded part animations, and scene graph hierarchy traversal.
+            <nav className="tk-mobile-drawer__nav" aria-label="Mobile Navigation Links">
+              <a
+                href="#solutions"
+                className="tk-mobile-drawer__link"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleScrollTo('solutions', e);
+                }}
+              >
+                Solutions
+              </a>
+              <a
+                href="#experience"
+                className="tk-mobile-drawer__link"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleScrollTo('experience', e);
+                }}
+              >
+                Products &amp; Features
+              </a>
+              <a
+                href="#stats"
+                className="tk-mobile-drawer__link"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleScrollTo('stats', e);
+                }}
+              >
+                Platform Stats &amp; Pricing
+              </a>
+              <a
+                href="#cta"
+                className="tk-mobile-drawer__link"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleScrollTo('cta', e);
+                }}
+              >
+                Enterprise Solutions
+              </a>
+              <a
+                href="#demo"
+                className="tk-mobile-drawer__link tk-mobile-drawer__link--highlight"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleLaunchDemo(e);
+                }}
+              >
+                Launch 3D Studio
+              </a>
+            </nav>
+
+            <div className="tk-mobile-drawer__footer">
+              <div className="tk-mobile-drawer__theme">
+                <span>Theme Mode:</span>
+                <button
+                  type="button"
+                  className="tk-theme-toggle"
+                  onClick={handleToggleTheme}
+                  aria-label="Toggle theme mode"
+                >
+                  <span className={`tk-theme-icon ${activeMode === 'light' ? 'is-active' : ''}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="5" />
+                      <line x1="12" y1="1" x2="12" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="23" />
+                    </svg>
+                  </span>
+                  <span className={`tk-theme-icon ${activeMode === 'dark' ? 'is-active' : ''}`}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="tk-btn-primary tk-btn--full"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleScrollTo('cta', e);
+                }}
+              >
+                <span>Book a Demo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------------------
+          2. Hero Section with Real Interactive 3D Model
+          ---------------------------------------------------------------------- */}
+      <section className="tk-hero" id="hero">
+        <div className="tk-container">
+          <div className="tk-hero__grid">
+            {/* Left Content Column */}
+            <div className="tk-hero__content">
+              <div className="tk-badge">
+                BESPOKE 3D CONFIGURATOR PLATFORM
+              </div>
+
+              <h1 className="tk-hero__title">
+                Design Beyond<br />
+                <span className="tk-gradient-text">Dimensions</span>
+              </h1>
+
+              <p className="tk-hero__desc">
+                Create immersive, high-performance 3D configurators for e-commerce, fashion, jewelry, packaging and more.
               </p>
+
+              <div className="tk-hero__actions">
+                <button
+                  type="button"
+                  className="tk-btn-primary"
+                  onClick={handleLaunchDemo}
+                  data-testid="hero-explore-solutions-btn"
+                >
+                  <span>Explore Solutions</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  className="tk-btn-secondary"
+                  onClick={handleLaunchDemo}
+                  data-testid="hero-watch-demo-btn"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  <span>Watch Demo</span>
+                </button>
+              </div>
+
+              {/* Social Proof / Avatars */}
+              <div className="tk-trust-row">
+                <div className="tk-avatar-group">
+                  <div className="tk-avatar" style={{ background: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600 }}>JD</div>
+                  <div className="tk-avatar" style={{ background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600 }}>SK</div>
+                  <div className="tk-avatar" style={{ background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600 }}>AL</div>
+                  <div className="tk-avatar-badge">+1000</div>
+                </div>
+                <span className="tk-trust-text">
+                  Trusted by global brands<br />and innovative teams
+                </span>
+              </div>
             </div>
 
-            <div className="vs-use-case-card" data-testid="use-case-game-art">
-              <div className="vs-use-case-card__icon" aria-hidden="true">🎮</div>
-              <span className="vs-use-case-card__tag">Gaming &amp; VFX</span>
-              <h3 className="vs-use-case-card__title">Digital Asset &amp; Rig Validation</h3>
-              <p className="vs-use-case-card__desc">
-                Review 3D character rigs, skinning weights, and skeletal animations with sub-frame scrubbing, lighting checks, and wireframe normal inspections.
-              </p>
-            </div>
-
-            <div className="vs-use-case-card" data-testid="use-case-luxury">
-              <div className="vs-use-case-card__icon" aria-hidden="true">💎</div>
-              <span className="vs-use-case-card__tag">Luxury &amp; Jewelry</span>
-              <h3 className="vs-use-case-card__title">Ray-Traced Spectral Dispersion</h3>
-              <p className="vs-use-case-card__desc">
-                Simulate Cauchy optical dispersion in diamond facets, anisotropic metallic reflections, and physical gemstone refraction with zero render latency.
-              </p>
+            {/* Right Visual: Real Interactive 3D Metallic Purple Torus Knot */}
+            <div className="tk-hero__visual">
+              <div className="tk-hero__visual-wrap">
+                <ViewerHero3DCanvas themeMode={activeMode} />
+              </div>
             </div>
           </div>
         </div>
       </section>
-    </ProductLandingTemplate>
+
+      {/* ----------------------------------------------------------------------
+          3. Horizontal Feature Strip (5 items) - Futuristic Hexagonal Glass Panel
+          ---------------------------------------------------------------------- */}
+      <section className="tk-strip-section" aria-label="Key Capabilities">
+        <div className="tk-container">
+          <div className="tk-feature-strip">
+            <div className="tk-feature-strip__inner">
+              {/* 1. Lightning Fast Performance */}
+              <div className="tk-strip-item">
+                <div className="tk-strip-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
+                <span className="tk-strip-title">Lightning Fast<br />Performance</span>
+              </div>
+
+              {/* 2. Photorealistic Rendering */}
+              <div className="tk-strip-item">
+                <div className="tk-strip-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                  </svg>
+                </div>
+                <span className="tk-strip-title">Photorealistic<br />Rendering</span>
+              </div>
+
+              {/* 3. Fully Customizable Experiences */}
+              <div className="tk-strip-item">
+                <div className="tk-strip-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="2" y1="6" x2="22" y2="6" />
+                    <circle cx="8" cy="6" r="2" fill="currentColor" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <circle cx="16" cy="12" r="2" fill="currentColor" />
+                    <line x1="2" y1="18" x2="22" y2="18" />
+                    <circle cx="10" cy="18" r="2" fill="currentColor" />
+                  </svg>
+                </div>
+                <span className="tk-strip-title">Fully Customizable<br />Experiences</span>
+              </div>
+
+              {/* 4. Scale for Enterprise */}
+              <div className="tk-strip-item">
+                <div className="tk-strip-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                    <polyline points="2 17 12 22 22 17" />
+                    <polyline points="2 12 12 17 22 12" />
+                  </svg>
+                </div>
+                <span className="tk-strip-title">Scale for<br />Enterprise</span>
+              </div>
+
+              {/* 5. Secure & Reliable */}
+              <div className="tk-strip-item">
+                <div className="tk-strip-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <polyline points="9 12 11 14 15 10" />
+                  </svg>
+                </div>
+                <span className="tk-strip-title">Secure &amp;<br />Reliable</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------------
+          4. Solutions Section ("Bring Your Ideas to Life" - 5 Cards)
+          ---------------------------------------------------------------------- */}
+      <section className="tk-solutions-section" id="solutions">
+        <div className="tk-container tk-solutions-container">
+          {/* Left Column: Heading, description, View All Solutions */}
+          <div className="tk-solutions-intro">
+            <div className="tk-badge">POWERFUL CONFIGURATORS</div>
+            <h2 className="tk-section-title">
+              Bring Your<br />
+              <span className="tk-gradient-text">Ideas to Life</span>
+            </h2>
+            <p className="tk-section-subtitle">
+              From luxury jewelry to sportswear, packaging to virtual showrooms — one platform, endless possibilities.
+            </p>
+            <a
+              href="#solutions"
+              className="tk-view-all-link"
+              onClick={handleLaunchDemo}
+            >
+              <span>View All Solutions</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </a>
+          </div>
+
+          {/* Right Column: 5 Futuristic Tilted Floating 3D Cards */}
+          <div className="tk-cards-deck">
+            {/* Card 1: Jewelry Configurator */}
+            <a
+              href="/apps/jewelry-configurator/index.html"
+              className="tk-solution-card tk-card-jewelry"
+              title="Open Jewelry Configurator"
+            >
+              <div className="tk-card-inner">
+                <div className="tk-card-image-wrap">
+                  <img
+                    src="/images/viewer-card-jewelry.png"
+                    alt="Jewelry Configurator"
+                    className="tk-card-image"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tk-card-footer">
+                  <h3 className="tk-card-title">Jewelry<br />Configurator</h3>
+                  <span className="tk-card-arrow-btn" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            {/* Card 2: Eyewear Try-On */}
+            <a
+              href="/apps/eyewear-tryon/index.html"
+              className="tk-solution-card tk-card-eyewear"
+              title="Open Eyewear Virtual Try-On"
+            >
+              <div className="tk-card-inner">
+                <div className="tk-card-image-wrap">
+                  <img
+                    src="/images/viewer-card-eyewear.png"
+                    alt="Eyewear Try-On"
+                    className="tk-card-image"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tk-card-footer">
+                  <h3 className="tk-card-title">Eyewear<br />Try-On</h3>
+                  <span className="tk-card-arrow-btn" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            {/* Card 3: Sportswear Configurator */}
+            <a
+              href="/apps/sportswear-configurator/index.html"
+              className="tk-solution-card tk-card-sportswear"
+              title="Open Sportswear Configurator"
+            >
+              <div className="tk-card-inner">
+                <div className="tk-card-image-wrap">
+                  <img
+                    src="/images/viewer-card-sportswear.png"
+                    alt="Sportswear Configurator"
+                    className="tk-card-image"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tk-card-footer">
+                  <h3 className="tk-card-title">Sportswear<br />Configurator</h3>
+                  <span className="tk-card-arrow-btn" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            {/* Card 4: Packaging Configurator */}
+            <a
+              href="/apps/box-configurator/index.html"
+              className="tk-solution-card tk-card-packaging"
+              title="Open Packaging Configurator"
+            >
+              <div className="tk-card-inner">
+                <div className="tk-card-image-wrap">
+                  <img
+                    src="/images/viewer-card-packaging.png"
+                    alt="Packaging Configurator"
+                    className="tk-card-image tk-card-image--packaging"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tk-card-footer">
+                  <h3 className="tk-card-title">Packaging<br />Configurator</h3>
+                  <span className="tk-card-arrow-btn" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            {/* Card 5: Virtual Tour (360°) */}
+            <a
+              href="/apps/360tour/index.html"
+              className="tk-solution-card tk-card-tour"
+              title="Open Virtual Tour"
+            >
+              <div className="tk-card-inner">
+                <div className="tk-card-image-wrap">
+                  <img
+                    src="/images/viewer-card-tour.png"
+                    alt="Virtual Tour (360°)"
+                    className="tk-card-image tk-card-image--tour"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="tk-card-footer">
+                  <h3 className="tk-card-title">Virtual Tour<br />(360°)</h3>
+                  <span className="tk-card-arrow-btn" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------------
+          5. Configure with Confidence Section (PROMPT 26: 3-Part Composition)
+             - LEFT (35%): Large glowing 3D Torus Knot with mountain landscape
+             - CENTER (25%): Badge, Heading, Description, Angular CTA Button
+             - RIGHT (40%): 3D Viewer interface preview with toolbar & swatches
+          ---------------------------------------------------------------------- */}
+      <section className="tk-confidence-section tk-experience-section" id="experience">
+        <div className="tk-container">
+          <div className="tk-confidence-inner">
+            {/* Left Column (35%): 3D Torus Knot + Mountains Artwork */}
+            <div className="tk-confidence-left">
+              <img
+                src="/images/viewer-confidence-knot.png"
+                alt="3D Metallic Torus Knot on Mountain Landscape"
+                className="tk-confidence-artwork"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Center Column (25%): Badge, Heading, Description, CTA */}
+            <div className="tk-confidence-center">
+              <div className="tk-confidence-badge">REAL-TIME 3D EXPERIENCE</div>
+              <h2 className="tk-confidence-title">
+                Configure with<br />
+                <span className="tk-gradient-confidence">Confidence</span>
+              </h2>
+              <p className="tk-confidence-desc">
+                Give your customers the power to explore, personalize and experience products in stunning 3D — in real time.
+              </p>
+              <div className="tk-confidence-actions">
+                <button
+                  type="button"
+                  className="tk-confidence-btn"
+                  onClick={handleLaunchDemo}
+                  data-testid="experience-try-live-demo-btn"
+                >
+                  <span>Try Live Demo</span>
+                  <span className="tk-btn-arrow">→</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column (40%): 3D Viewer Interface Preview Mockup */}
+            <div className="tk-confidence-right">
+              <ConfidenceViewerMockup
+                themeMode={activeMode}
+                onLaunchDemo={handleLaunchDemo}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------------
+          6. Statistics Bar
+          ---------------------------------------------------------------------- */}
+      <section className="tk-stats-section" id="stats">
+        <div className="tk-container">
+          <div className="tk-stats-bar">
+            <div className="tk-stats-bar__inner">
+              {/* Stat 1: 60+ Projects */}
+              <div className="tk-stat-item">
+                <div className="tk-stat-icon-wrap" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                    <circle cx="8" cy="15.5" r="0.75" fill="currentColor" stroke="none" />
+                    <circle cx="16" cy="15.5" r="0.75" fill="currentColor" stroke="none" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="tk-stat-value">60+</div>
+                  <div className="tk-stat-label">Projects Delivered</div>
+                </div>
+              </div>
+
+              {/* Stat 2: 6+ Countries */}
+              <div className="tk-stat-item">
+                <div className="tk-stat-icon-wrap" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="tk-stat-value">6+</div>
+                  <div className="tk-stat-label">Countries</div>
+                </div>
+              </div>
+
+              {/* Stat 3: 99.9% Uptime */}
+              <div className="tk-stat-item">
+                <div className="tk-stat-icon-wrap" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="tk-stat-value">99.9%</div>
+                  <div className="tk-stat-label">Uptime</div>
+                </div>
+              </div>
+
+              {/* Stat 4: 100% Satisfaction */}
+              <div className="tk-stat-item">
+                <div className="tk-stat-icon-wrap" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                    <circle cx="10" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="tk-stat-value">100%</div>
+                  <div className="tk-stat-label">Client Satisfaction</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------------
+          7. Integrated Bottom Area: Final CTA Showroom Section + Footer
+          ---------------------------------------------------------------------- */}
+      <section className="tk-bottom-integrated" id="cta">
+        <div className="tk-container">
+          {/* Compact CTA Banner Card - Exact 3.7:1 Aspect Ratio Matching Reference */}
+          <div className="tk-cta-card">
+            {/* Left Content Area (approx 42% width, 7.5% from card left edge) */}
+            <div className="tk-cta-content">
+              <span className="tk-cta-label">READY TO GET STARTED?</span>
+              <h2 className="tk-cta-title">
+                Let&apos;s Build Your<br />
+                3D Experience Together
+              </h2>
+              <div className="tk-cta-actions">
+                <button
+                  type="button"
+                  className="tk-btn-primary tk-cta-btn-demo"
+                  onClick={handleLaunchDemo}
+                >
+                  <span>Book a Demo</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Integrated Compact Footer */}
+          <footer className="tk-footer">
+            <div className="tk-footer__inner">
+              {/* Left: Brand + Copyright */}
+              <div className="tk-footer__left">
+                <div className="tk-brand">
+                  <div className="tk-brand__icon" aria-hidden="true">
+                    <svg viewBox="0 0 28 28" width="22" height="22" fill="none">
+                      <path
+                        d="M3 5.5L25 14L3 22.5L7.5 14L3 5.5Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </div>
+                  <span className="tk-brand__name" style={{ fontSize: '17px' }}>Trikomi</span>
+                </div>
+                <span className="tk-footer__copy">
+                  &copy; 2025 Trikomi. All rights reserved.
+                </span>
+              </div>
+
+              {/* Right: Legal Links + Social Icons */}
+              <div className="tk-footer__right">
+                <div className="tk-footer__links">
+                  <a href="#privacy" className="tk-footer__link">Privacy</a>
+                  <a href="#terms" className="tk-footer__link">Terms</a>
+                  <a href="#contact" className="tk-footer__link">Contact</a>
+                </div>
+                <span className="tk-footer__divider" aria-hidden="true">|</span>
+                <div className="tk-footer__socials">
+                  {/* LinkedIn */}
+                  <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="tk-social-btn" aria-label="LinkedIn">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                    </svg>
+                  </a>
+                  {/* YouTube */}
+                  <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="tk-social-btn" aria-label="YouTube">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                    </svg>
+                  </a>
+                  {/* X / Twitter */}
+                  <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="tk-social-btn" aria-label="X">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                  </a>
+                  {/* Instagram */}
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="tk-social-btn" aria-label="Instagram">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </section>
+    </div>
   );
 };
 

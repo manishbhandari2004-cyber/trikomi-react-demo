@@ -7072,5 +7072,70 @@
   }
 }
 
+/* ==========================================================================
+   Unified Premium Showcase Visuals across all 7 Configurators
+   ========================================================================== */
+.vs-jewelry-preview-card__visual,
+.vs-eyewear-preview-card__visual,
+.vs-sportswear-preview-card__visual,
+.vs-sportswear-showcase-card__visual,
+.vs-box-preview-card__visual,
+.vs-mocap-preview-card__visual,
+.vs-tour-showcase-card__visual {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 16 / 10 !important;
+  min-height: 280px !important;
+  max-height: 480px !important;
+  border-radius: var(--vs-radius-xl) !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #080D1F !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-theme='light'] .vs-jewelry-preview-card__visual,
+[data-theme='light'] .vs-eyewear-preview-card__visual,
+[data-theme='light'] .vs-sportswear-preview-card__visual,
+[data-theme='light'] .vs-sportswear-showcase-card__visual,
+[data-theme='light'] .vs-box-preview-card__visual,
+[data-theme='light'] .vs-mocap-preview-card__visual,
+[data-theme='light'] .vs-tour-showcase-card__visual {
+  background: #FFFFFF !important;
+  border-color: rgba(110, 44, 242, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(110, 44, 242, 0.08) !important;
+}
+
+.vs-jewelry-preview-card__img,
+.vs-eyewear-preview-card__img,
+.vs-sportswear-preview-card__img,
+.vs-sportswear-showcase-card__img,
+.vs-box-preview-card__img,
+.vs-mocap-preview-card__img,
+.vs-tour-showcase-card__img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  filter: none !important;
+}
+
+.vs-jewelry-preview-card:hover .vs-jewelry-preview-card__img,
+.vs-eyewear-preview-card:hover .vs-eyewear-preview-card__img,
+.vs-sportswear-showcase-card:hover .vs-sportswear-showcase-card__img,
+.vs-box-preview-card:hover .vs-box-preview-card__img,
+.vs-mocap-preview-card:hover .vs-mocap-preview-card__img,
+.vs-tour-showcase-card:hover .vs-tour-showcase-card__img {
+  transform: scale(1.04) !important;
+}
+
 
 
