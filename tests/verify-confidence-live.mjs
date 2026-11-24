@@ -32,8 +32,13 @@ const server = http.createServer((req, res) => {
     if (fs.existsSync(publicPath)) {
       filePath = publicPath;
     } else {
-      res.writeHead(404);
-      return res.end('Not found');
+      const distShared = path.resolve('dist', reqPath.replace(/^\//, ''));
+      if (fs.existsSync(distShared)) {
+        filePath = distShared;
+      } else {
+        res.writeHead(404);
+        return res.end('Not found');
+      }
     }
   }
 
@@ -60,11 +65,21 @@ server.listen(5196, async () => {
   await page.goto('http://localhost:5196', { waitUntil: 'domcontentloaded' });
   await new Promise(r => setTimeout(r, 600));
 
+  // Ensure Dark mode is active
+  await page.evaluate(() => {
+    const pageEl = document.querySelector('.tk-viewer-page');
+    if (pageEl && pageEl.getAttribute('data-theme') === 'light') {
+      const toggle = document.querySelector('.tk-theme-toggle');
+      if (toggle) toggle.click();
+    }
+  });
+  await new Promise(r => setTimeout(r, 400));
+
   await page.evaluate(() => {
     const el = document.getElementById('experience');
     if (el) el.scrollIntoView({ behavior: 'instant', block: 'center' });
   });
-  await new Promise(r => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 500));
 
   const expSec = await page.$('#experience');
   if (expSec) {
@@ -72,18 +87,12 @@ server.listen(5196, async () => {
     console.log('Saved confidence-live-dark-1440.png');
   }
 
-  // 2. Test swatch interaction live in browser
-  await page.evaluate(() => {
-    const swatches = document.querySelectorAll('.tk-mockup-sphere');
-    if (swatches.length > 2) {
-      // click electric cyan swatch
-      swatches[2].click();
-    }
-  });
+  // 2. Test console hover interaction
+  await page.hover('.tk-confidence-console-wrap');
   await new Promise(r => setTimeout(r, 300));
   if (expSec) {
-    await expSec.screenshot({ path: path.join(outDir, 'confidence-live-swatch-cyan.png') });
-    console.log('Saved confidence-live-swatch-cyan.png');
+    await expSec.screenshot({ path: path.join(outDir, 'confidence-live-hover.png') });
+    console.log('Saved confidence-live-hover.png');
   }
 
   // 3. Tablet 768px
@@ -126,28 +135,35 @@ server.listen(5196, async () => {
 
   // 6. Generate side-by-side comparison HTML & screenshot
   const refBase64 = fs.readFileSync(path.join(outDir, 'ref-configure-confidence.jpg')).toString('base64');
-  const liveBase64 = fs.readFileSync(path.join(outDir, 'confidence-live-dark-1440.png')).toString('base64');
+  const liveDarkBase64 = fs.readFileSync(path.join(outDir, 'confidence-live-dark-1440.png')).toString('base64');
+  const liveLightBase64 = fs.readFileSync(path.join(outDir, 'confidence-live-light-1440.png')).toString('base64');
 
-  await page.setViewport({ width: 1300, height: 900, deviceScaleFactor: 2 });
+  await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 2 });
   await page.setContent(`
     <!DOCTYPE html>
     <html>
       <head>
         <style>
-          body { margin:0; padding:24px; background:#020308; color:#fff; font-family:sans-serif; }
-          h2 { font-size:18px; margin:0 0 10px 0; color:#A855F7; }
-          .img-box { margin-bottom:24px; border:1px solid rgba(255,255,255,0.15); border-radius:12px; overflow:hidden; }
+          body { margin:0; padding:28px; background:#020308; color:#fff; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+          h2 { font-size:16px; font-weight:700; margin:0 0 10px 0; color:#A855F7; text-transform:uppercase; letter-spacing:0.08em; }
+          .img-box { margin-bottom:28px; border:1px solid rgba(255,255,255,0.18); border-radius:12px; overflow:hidden; background:#01040A; }
           img { width:100%; display:block; }
+          .badge { display:inline-block; padding:4px 10px; border-radius:6px; background:#1E1B4B; color:#C084FC; font-size:12px; font-weight:bold; margin-bottom:8px; }
         </style>
       </head>
       <body>
+        <div class="badge">Reference vs Live Verification</div>
         <h2>1. User's Reference Screenshot:</h2>
         <div class="img-box">
           <img src="data:image/jpeg;base64,${refBase64}" />
         </div>
-        <h2>2. Live Recreated Section (Desktop 1440px):</h2>
+        <h2>2. Live Recreated Section — Dark Theme (Desktop 1440px):</h2>
         <div class="img-box">
-          <img src="data:image/png;base64,${liveBase64}" />
+          <img src="data:image/png;base64,${liveDarkBase64}" />
+        </div>
+        <h2>3. Live Recreated Section — Light Theme (Desktop 1440px):</h2>
+        <div class="img-box">
+          <img src="data:image/png;base64,${liveLightBase64}" />
         </div>
       </body>
     </html>

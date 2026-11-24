@@ -35,148 +35,21 @@ const ConfidenceViewerMockup: React.FC<ConfidenceViewerMockupProps> = ({
   themeMode = 'dark',
   onLaunchDemo
 }) => {
-  const [activeSwatch, setActiveSwatch] = useState<string>('purple');
-  const [activeTool, setActiveTool] = useState<string>('iso');
-  const [isRotating, setIsRotating] = useState<boolean>(true);
-
-  const swatches = [
-    { id: 'silver', name: 'Pearl Silver Chrome', className: 'tk-sphere-silver' },
-    { id: 'purple', name: 'Metallic Violet', className: 'tk-sphere-purple' },
-    { id: 'cyan', name: 'Electric Cyan', className: 'tk-sphere-cyan' },
-    { id: 'gold', name: '24K Gold', className: 'tk-sphere-gold' },
-    { id: 'copper', name: 'Rose Bronze', className: 'tk-sphere-copper' },
-    { id: 'obsidian', name: 'Obsidian Slate', className: 'tk-sphere-obsidian' },
-  ];
-
   return (
-    <div className="tk-mockup-frame">
-      {/* Left Vertical Toolbar Panel */}
-      <div className="tk-mockup-toolbar">
-        {/* Tool 1: Iso Box */}
-        <button
-          type="button"
-          className={`tk-mockup-tool-btn ${activeTool === 'iso' ? 'is-active' : ''}`}
-          onClick={() => setActiveTool('iso')}
-          title="Isometric View"
-          aria-label="Isometric View"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-          </svg>
-        </button>
-        {/* Tool 2: Orbit Box */}
-        <button
-          type="button"
-          className={`tk-mockup-tool-btn ${activeTool === 'orbit' ? 'is-active' : ''}`}
-          onClick={() => {
-            setActiveTool('orbit');
-            setIsRotating(prev => !prev);
-          }}
-          title="360° Orbit Rotation"
-          aria-label="360° Orbit Rotation"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M21.17 8A10 10 0 0 0 3.83 8" />
-            <path d="M2.83 16a10 10 0 0 0 17.34 0" />
-          </svg>
-        </button>
-        {/* Tool 3: Wireframe */}
-        <button
-          type="button"
-          className={`tk-mockup-tool-btn ${activeTool === 'wire' ? 'is-active' : ''}`}
-          onClick={() => setActiveTool('wire')}
-          title="Wireframe Mesh"
-          aria-label="Wireframe Mesh"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-            <line x1="3" y1="15" x2="21" y2="15" />
-            <line x1="9" y1="3" x2="9" y2="21" />
-            <line x1="15" y1="3" x2="15" y2="21" />
-          </svg>
-        </button>
-        {/* Tool 4: Exploded */}
-        <button
-          type="button"
-          className={`tk-mockup-tool-btn ${activeTool === 'layers' ? 'is-active' : ''}`}
-          onClick={() => setActiveTool('layers')}
-          title="Exploded Mesh Parts"
-          aria-label="Exploded Mesh Parts"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
-        </button>
-        {/* Tool 5: Gear */}
-        <button
-          type="button"
-          className={`tk-mockup-tool-btn ${activeTool === 'gear' ? 'is-active' : ''}`}
-          onClick={() => setActiveTool('gear')}
-          title="Settings & Parameters"
-          aria-label="Settings & Parameters"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Main Viewport */}
-      <div className="tk-mockup-main">
-        {/* Navigation Bar: Back Chevron & Fullscreen Button */}
-        <div className="tk-mockup-header">
-          <button
-            type="button"
-            className="tk-mockup-ctrl-btn"
-            title="Back / Reset View"
-            aria-label="Back / Reset View"
-          >
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="tk-mockup-ctrl-btn"
-            onClick={onLaunchDemo}
-            title="Launch Fullscreen 3D Studio"
-            aria-label="Launch Fullscreen 3D Studio"
-          >
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Center 3D Model Display */}
-        <div className="tk-mockup-canvas-wrap" onClick={onLaunchDemo} title="Click to launch Interactive 3D Studio">
-          <img
-            src="/images/purple-knot-product.png"
-            alt="Real-Time 3D Torus Knot Model"
-            className={`tk-mockup-3d-img ${isRotating ? 'is-animating' : ''} swatch-${activeSwatch}`}
-          />
-        </div>
-
-        {/* Bottom Material / Color Swatches */}
-        <div className="tk-mockup-swatches">
-          {swatches.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`tk-mockup-sphere ${s.className} ${activeSwatch === s.id ? 'is-active' : ''}`}
-              onClick={() => setActiveSwatch(s.id)}
-              title={s.name}
-              aria-label={s.name}
-            />
-          ))}
-        </div>
+    <div
+      className="tk-confidence-console-wrap"
+      onClick={onLaunchDemo}
+      title="Click to launch Interactive 3D Studio"
+      role="region"
+      aria-label="3D Product Viewer interactive preview"
+    >
+      <div className="tk-console-media">
+        <img
+          src="/images/viewer-confidence-mockup.png"
+          alt="Trikomi 3D Viewer interface preview with toolbar and swatches"
+          className="tk-console-img"
+          loading="lazy"
+        />
       </div>
     </div>
   );
@@ -247,8 +120,10 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Mobile navigation drawer state
+  // Mobile navigation drawer state & accordion submenus
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
+  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -303,6 +178,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
         <div className="tk-ambient-orb-1" />
         <div className="tk-ambient-orb-2" />
         <div className="tk-ambient-orb-3" />
+        <div className="tk-ambient-orb-4" />
       </div>
 
       {/* ----------------------------------------------------------------------
@@ -323,7 +199,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
             >
               <div className="tk-brand__icon" aria-hidden="true">
                 {/* Trikomi Geometric Origami / Arrow Logo */}
-                <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
+                <svg viewBox="0 0 28 28" width="32" height="32" fill="none">
                   <path
                     d="M3 5.5L25 14L3 22.5L7.5 14L3 5.5Z"
                     fill="currentColor"
@@ -344,7 +220,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
             <nav className="tk-nav" aria-label="Main Navigation">
               <ul className="tk-nav-links">
                 <li className="tk-nav-item">
-                  <button type="button" className="tk-nav-btn">
+                  <button type="button" className="tk-nav-btn" aria-haspopup="true" aria-expanded="false">
                     <span>Solutions</span>
                     <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="6 9 12 15 18 9" />
@@ -361,7 +237,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                 </li>
 
                 <li className="tk-nav-item">
-                  <button type="button" className="tk-nav-btn">
+                  <button type="button" className="tk-nav-btn" aria-haspopup="true" aria-expanded="false">
                     <span>Products</span>
                     <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="6 9 12 15 18 9" />
@@ -376,7 +252,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                 </li>
 
                 <li className="tk-nav-item">
-                  <button type="button" className="tk-nav-btn">
+                  <button type="button" className="tk-nav-btn" aria-haspopup="true" aria-expanded="false">
                     <span>Industries</span>
                     <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="6 9 12 15 18 9" />
@@ -391,7 +267,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                 </li>
 
                 <li className="tk-nav-item">
-                  <button type="button" className="tk-nav-btn">
+                  <button type="button" className="tk-nav-btn" aria-haspopup="true" aria-expanded="false">
                     <span>Resources</span>
                     <svg className="tk-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="6 9 12 15 18 9" />
@@ -536,16 +412,62 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
             </div>
 
             <nav className="tk-mobile-drawer__nav" aria-label="Mobile Navigation Links">
-              <a
-                href="#solutions"
-                className="tk-mobile-drawer__link"
-                onClick={(e) => {
-                  setMobileMenuOpen(false);
-                  handleScrollTo('solutions', e);
-                }}
-              >
-                Solutions
-              </a>
+              {/* Solutions Accordion Dropdown */}
+              <div className="tk-mobile-accordion">
+                <button
+                  type="button"
+                  className="tk-mobile-drawer__link tk-mobile-accordion__btn"
+                  onClick={() => setMobileSolutionsOpen(!mobileSolutionsOpen)}
+                  aria-expanded={mobileSolutionsOpen}
+                >
+                  <span>Solutions</span>
+                  <svg
+                    className={`tk-mobile-chevron ${mobileSolutionsOpen ? 'is-open' : ''}`}
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {mobileSolutionsOpen && (
+                  <div className="tk-mobile-submenu">
+                    <a href="/apps/jewelry-configurator/index.html" className="tk-mobile-sublink" onClick={() => setMobileMenuOpen(false)}>
+                      <span>• Luxury Jewelry</span>
+                    </a>
+                    <a href="/apps/eyewear-tryon/index.html" className="tk-mobile-sublink" onClick={() => setMobileMenuOpen(false)}>
+                      <span>• Eyewear &amp; Optics</span>
+                    </a>
+                    <a href="/apps/sportswear-configurator/index.html" className="tk-mobile-sublink" onClick={() => setMobileMenuOpen(false)}>
+                      <span>• Athletic Apparel</span>
+                    </a>
+                    <a href="/apps/box-configurator/index.html" className="tk-mobile-sublink" onClick={() => setMobileMenuOpen(false)}>
+                      <span>• Premium Packaging</span>
+                    </a>
+                    <a href="/apps/360tour/index.html" className="tk-mobile-sublink" onClick={() => setMobileMenuOpen(false)}>
+                      <span>• Virtual Tour (360°)</span>
+                    </a>
+                    <a
+                      href="#solutions"
+                      className="tk-mobile-sublink tk-mobile-sublink--all"
+                      onClick={(e) => {
+                        setMobileMenuOpen(false);
+                        handleScrollTo('solutions', e);
+                      }}
+                    >
+                      <span>→ View All Solutions</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Products & Features */}
               <a
                 href="#experience"
                 className="tk-mobile-drawer__link"
@@ -556,6 +478,49 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
               >
                 Products &amp; Features
               </a>
+
+              {/* Resources Accordion Dropdown */}
+              <div className="tk-mobile-accordion">
+                <button
+                  type="button"
+                  className="tk-mobile-drawer__link tk-mobile-accordion__btn"
+                  onClick={() => setMobileResourcesOpen(!mobileResourcesOpen)}
+                  aria-expanded={mobileResourcesOpen}
+                >
+                  <span>Resources</span>
+                  <svg
+                    className={`tk-mobile-chevron ${mobileResourcesOpen ? 'is-open' : ''}`}
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {mobileResourcesOpen && (
+                  <div className="tk-mobile-submenu">
+                    <a href="#cta" className="tk-mobile-sublink" onClick={(e) => { setMobileMenuOpen(false); handleScrollTo('cta', e); }}>
+                      <span>• Developer Documentation</span>
+                    </a>
+                    <a href="#cta" className="tk-mobile-sublink" onClick={(e) => { setMobileMenuOpen(false); handleScrollTo('cta', e); }}>
+                      <span>• API Reference</span>
+                    </a>
+                    <a href="#cta" className="tk-mobile-sublink" onClick={(e) => { setMobileMenuOpen(false); handleScrollTo('cta', e); }}>
+                      <span>• Case Studies</span>
+                    </a>
+                    <a href="#cta" className="tk-mobile-sublink" onClick={(e) => { setMobileMenuOpen(false); handleScrollTo('cta', e); }}>
+                      <span>• System Status</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
               <a
                 href="#stats"
                 className="tk-mobile-drawer__link"
@@ -944,8 +909,8 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
              - CENTER (25%): Badge, Heading, Description, Angular CTA Button
              - RIGHT (40%): 3D Viewer interface preview with toolbar & swatches
           ---------------------------------------------------------------------- */}
-      <section className="tk-confidence-section tk-experience-section" id="experience">
-        <div className="tk-container">
+      <section className="tk-confidence-section" id="experience">
+        <div className="tk-container tk-confidence-container">
           <div className="tk-confidence-inner">
             {/* Left Column (35%): 3D Torus Knot + Mountains Artwork */}
             <div className="tk-confidence-left">
@@ -1009,7 +974,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                     <circle cx="16" cy="15.5" r="0.75" fill="currentColor" stroke="none" />
                   </svg>
                 </div>
-                <div>
+                <div className="tk-stat-text">
                   <div className="tk-stat-value">60+</div>
                   <div className="tk-stat-label">Projects Delivered</div>
                 </div>
@@ -1024,7 +989,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                   </svg>
                 </div>
-                <div>
+                <div className="tk-stat-text">
                   <div className="tk-stat-value">6+</div>
                   <div className="tk-stat-label">Countries</div>
                 </div>
@@ -1037,7 +1002,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                 </div>
-                <div>
+                <div className="tk-stat-text">
                   <div className="tk-stat-value">99.9%</div>
                   <div className="tk-stat-label">Uptime</div>
                 </div>
@@ -1053,7 +1018,7 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </div>
-                <div>
+                <div className="tk-stat-text">
                   <div className="tk-stat-value">100%</div>
                   <div className="tk-stat-label">Client Satisfaction</div>
                 </div>
@@ -1092,9 +1057,14 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Integrated Compact Footer */}
-          <footer className="tk-footer">
+      {/* ----------------------------------------------------------------------
+          8. Distinct Grounded Footer Section
+          ---------------------------------------------------------------------- */}
+      <footer className="tk-footer">
+        <div className="tk-container">
             <div className="tk-footer__inner">
               {/* Left: Brand + Copyright */}
               <div className="tk-footer__left">
@@ -1152,9 +1122,8 @@ export const ViewerLandingPage: React.FC<ViewerLandingPageProps> = ({
                 </div>
               </div>
             </div>
-          </footer>
-        </div>
-      </section>
+          </div>
+      </footer>
     </div>
   );
 };

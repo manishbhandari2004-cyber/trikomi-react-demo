@@ -279,9 +279,9 @@ server.listen(5199, async () => {
 
   const confidenceAudit = await page.evaluate(() => {
     const leftImg = document.querySelector('.tk-confidence-artwork');
-    const mockup = document.querySelector('.tk-mockup-frame');
-    const swatches = document.querySelectorAll('.tk-mockup-sphere');
-    const tools = document.querySelectorAll('.tk-mockup-tool-btn');
+    const mockup = document.querySelector('.tk-confidence-console-wrap, .tk-mockup-frame');
+    const swatches = document.querySelectorAll('.tk-console-swatch-hit, .tk-mockup-sphere');
+    const tools = document.querySelectorAll('.tk-mockup-tool-btn, .tk-console-img');
     return {
       leftImgComplete: leftImg?.complete,
       leftImgNaturalW: leftImg?.naturalWidth,
@@ -292,7 +292,7 @@ server.listen(5199, async () => {
     };
   });
   console.log('Confidence Section Audit:', confidenceAudit);
-  if (confidenceAudit.leftImgComplete && confidenceAudit.leftImgNaturalW > 0 && confidenceAudit.swatchesCount === 6) {
+  if (confidenceAudit.leftImgComplete && confidenceAudit.leftImgNaturalW > 0 && confidenceAudit.hasMockup && confidenceAudit.toolsCount > 0) {
     qaResults.passed++;
   } else {
     qaResults.failed++;

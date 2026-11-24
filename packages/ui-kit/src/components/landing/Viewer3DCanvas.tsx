@@ -30,10 +30,10 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     const width = container.clientWidth || 480;
     const height = container.clientHeight || 440;
 
-    // Scene & Camera
+    // Scene & Camera (Closer camera framing to complement 18% larger 3D object)
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0.45, 4.2);
+    camera.position.set(0, 0.45, 4.0);
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({
@@ -86,7 +86,7 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     const stageGroup = new THREE.Group();
     scene.add(stageGroup);
 
-    const tier1Geo = new THREE.CylinderGeometry(1.65, 1.75, 0.12, 64);
+    const tier1Geo = new THREE.CylinderGeometry(1.90, 2.05, 0.12, 64);
     const tier1Mat = new THREE.MeshStandardMaterial({
       color: 0x0b0e24,
       metalness: 0.9,
@@ -97,7 +97,7 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     tier1.receiveShadow = true;
     stageGroup.add(tier1);
 
-    const tier2Geo = new THREE.CylinderGeometry(1.35, 1.45, 0.14, 64);
+    const tier2Geo = new THREE.CylinderGeometry(1.55, 1.68, 0.14, 64);
     const tier2Mat = new THREE.MeshStandardMaterial({
       color: 0x121838,
       metalness: 0.85,
@@ -109,15 +109,15 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     stageGroup.add(tier2);
 
     // Glowing Neon Rings on Pedestal
-    const neonRing1Geo = new THREE.TorusGeometry(1.68, 0.016, 16, 80);
-    const neonRing1Mat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+    const neonRing1Geo = new THREE.TorusGeometry(1.94, 0.016, 16, 80);
+    const neonRing1Mat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     const neonRing1 = new THREE.Mesh(neonRing1Geo, neonRing1Mat);
     neonRing1.rotation.x = Math.PI / 2;
     neonRing1.position.y = -0.94;
     stageGroup.add(neonRing1);
 
-    const neonRing2Geo = new THREE.TorusGeometry(1.38, 0.018, 16, 80);
-    const neonRing2Mat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+    const neonRing2Geo = new THREE.TorusGeometry(1.58, 0.018, 16, 80);
+    const neonRing2Mat = new THREE.MeshBasicMaterial({ color: 0x7c3aed });
     const neonRing2 = new THREE.Mesh(neonRing2Geo, neonRing2Mat);
     neonRing2.rotation.x = Math.PI / 2;
     neonRing2.position.y = -0.81;
@@ -131,21 +131,21 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     scene.add(portalGroup);
 
     const portalCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-1.8, -1.2, 0),
-      new THREE.Vector3(-1.9, 1.4, 0),
-      new THREE.Vector3(0, 1.9, 0),
-      new THREE.Vector3(1.9, 1.4, 0),
-      new THREE.Vector3(1.8, -1.2, 0)
+      new THREE.Vector3(-2.1, -1.3, 0),
+      new THREE.Vector3(-2.2, 1.6, 0),
+      new THREE.Vector3(0, 2.15, 0),
+      new THREE.Vector3(2.2, 1.6, 0),
+      new THREE.Vector3(2.1, -1.3, 0)
     ], true);
     const portalGeo = new THREE.TubeGeometry(portalCurve, 64, 0.022, 12, true);
-    const portalMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const portalMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     const portalMesh = new THREE.Mesh(portalGeo, portalMat);
     portalGroup.add(portalMesh);
 
     // Inner orbiting light ring
-    const orbitRingGeo = new THREE.TorusGeometry(1.75, 0.012, 16, 100);
+    const orbitRingGeo = new THREE.TorusGeometry(2.0, 0.012, 16, 100);
     const orbitRingMat = new THREE.MeshBasicMaterial({
-      color: 0xc084fc,
+      color: 0x7c3aed,
       transparent: true,
       opacity: 0.8
     });
@@ -154,11 +154,11 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     orbitRing.rotation.y = 0.4;
     portalGroup.add(orbitRing);
 
-    // Center 3D Attraction: Torus Knot Geometry
+    // Center 3D Attraction: Torus Knot Geometry (18% Larger Scale per Prompt 02)
     const knotGroup = new THREE.Group();
     scene.add(knotGroup);
 
-    const knotGeo = new THREE.TorusKnotGeometry(0.9, 0.30, 160, 32, 2, 3);
+    const knotGeo = new THREE.TorusKnotGeometry(1.06, 0.35, 160, 32, 2, 3);
     const knotMat = new THREE.MeshPhysicalMaterial({
       color: 0x8b5cf6,
       emissive: 0x1f0b3d,
@@ -191,16 +191,27 @@ export const ViewerHero3DCanvas: React.FC<ViewerHero3DCanvasProps> = ({
     controls.addEventListener('start', () => setIsInteracting(true));
     controls.addEventListener('end', () => setIsInteracting(false));
 
-    // Handle Resize
+    // Handle Resize & Responsive 3D Object Scaling
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
-      camera.aspect = w / h;
+      const aspect = w / h;
+      camera.aspect = aspect;
+      // On narrow mobile screens (aspect < 1.1), dynamically scale camera distance and FOV
+      // to ensure the entire 3D Torus Knot and cyan orbit rings remain 100% visible with zero clipping
+      if (aspect < 1.1) {
+        camera.fov = Math.min(56, 45 / Math.max(0.72, aspect));
+        camera.position.set(0, 0.35, 4.0 / Math.max(0.80, aspect));
+      } else {
+        camera.fov = 45;
+        camera.position.set(0, 0.4, 4.0);
+      }
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
 
+    handleResize();
     window.addEventListener('resize', handleResize);
 
     // Animation Loop
